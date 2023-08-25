@@ -1,0 +1,10 @@
+version: "3.0"
+
+services:
+
+  app:
+    build: .
+    image: product_prediction_onnx
+    ports:
+      - "8005:8000"
+    restart: always
