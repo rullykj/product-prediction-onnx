@@ -23,9 +23,15 @@ Extend(app)
 print("load model!!!")
 
 onnx_model_path = 'model_mod.onnx'
+chair_model_path = 'resnet_chair.onnx'
+sofa_model_path = 'resnet_sofa.onnx'
+
 MyOnnxModelSession = rt.InferenceSession(onnx_model_path, providers=['CPUExecutionProvider'])
+chairModelSession = rt.InferenceSession(chair_model_path, providers=['CPUExecutionProvider'])
+sofaModelSession = rt.InferenceSession(sofa_model_path, providers=['CPUExecutionProvider'])
 
 product_labels = ['bed', 'chair', 'sofa', 'swivelchair', 'table']
+brand_labels = ['IKEA', 'INFORMA']
 
 class TopLevel:
     received: bool
@@ -83,34 +89,39 @@ async def predict(request):
     img_tensor = np.expand_dims(img_tensor, axis=0)
     product_img = preprocess_input_resnet50(img_tensor)
     
-    # opencv
-    # im_bytes = base64.b64decode(jsonBody['image'])
-    # im_arr = np.frombuffer(im_bytes, dtype=np.uint8)  # im_arr is one-dim Numpy array
-    # img = cv2.imdecode(im_arr, flags=cv2.IMREAD_COLOR)
-    # color_converted = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # color_converted = cv2.resize(color_converted, (224, 224))
-    # blob = cv2.dnn.blobFromImage(color_converted)
-    # product_img = np.transpose(blob, (0, 2, 3, 1))
-    # product_img = preprocess_input_resnet50(product_img)
-    
     preds = MyOnnxModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
-        
-
-    #print(jsonBody['operation'])
-    
-
-    #return text(jsonBody['operation'])
     
     json_object_products = obj_to_json_obj(preds, NumpyArrayEncoder)
     index = np.argmax(preds)
+    
+    if index == 0:
+        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    elif index == 1:
+        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    elif index == 2:
+        brandPreds = sofaModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    elif index == 3:
+        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    elif index == 4:
+        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    # else: 
+    #     ""
+    json_object_brands = obj_to_json_obj(brandPreds, NumpyArrayEncoder)
+    brandIndex = np.argmax(brandPreds)     
+    
     print(product_labels[index])
+    print(brand_labels[brandIndex])
 
     return json({ 
         "error": False,
         "received": True, 
         "prediction": product_labels[index],
         "product": json_object_products, 
-        "product_labels": product_labels })
+        "product_labels": product_labels,
+        "brand_prediction": brand_labels[brandIndex],
+        "brand": json_object_brands, 
+        "brand_labels": brand_labels
+        })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)

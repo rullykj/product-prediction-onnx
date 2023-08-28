@@ -1,4 +1,4 @@
-easydev==0.12.1
+# easydev==0.12.1
 numpy==1.23.5
 onnxruntime==1.14.1
 # opencv-python==4.7.0.72
