@@ -25,10 +25,20 @@ print("load model!!!")
 onnx_model_path = 'model_mod.onnx'
 chair_model_path = 'resnet_chair.onnx'
 sofa_model_path = 'resnet_sofa.onnx'
+bed_model_path = 'resnet_bed.onnx'
+table_model_path = 'resnet_table.onnx'
+swivelchair_model_path = 'resnet_swivelchair.onnx'
+merge_model_path = 'resnet_merge.onnx'
+
 
 MyOnnxModelSession = rt.InferenceSession(onnx_model_path, providers=['CPUExecutionProvider'])
 chairModelSession = rt.InferenceSession(chair_model_path, providers=['CPUExecutionProvider'])
 sofaModelSession = rt.InferenceSession(sofa_model_path, providers=['CPUExecutionProvider'])
+bedModelSession = rt.InferenceSession(bed_model_path, providers=['CPUExecutionProvider'])
+tableModelSession = rt.InferenceSession(table_model_path, providers=['CPUExecutionProvider'])
+swivelchairModelSession = rt.InferenceSession(swivelchair_model_path, providers=['CPUExecutionProvider'])
+mergeModelSession = rt.InferenceSession(merge_model_path, providers=['CPUExecutionProvider'])
+
 
 product_labels = ['bed', 'chair', 'sofa', 'swivelchair', 'table']
 brand_labels = ['IKEA', 'INFORMA']
@@ -82,7 +92,7 @@ async def predict(request):
     strBody = request.body
 
     jsonBody = js.loads(strBody)
-    
+    isMerge = jsonBody['isMerge']
     
     image = Image.open(io.BytesIO(base64.decodebytes(bytes(jsonBody['image'], "utf-8"))))
     img_tensor = np.asarray(image)
@@ -94,16 +104,19 @@ async def predict(request):
     json_object_products = obj_to_json_obj(preds, NumpyArrayEncoder)
     index = np.argmax(preds)
     
-    if index == 0:
-        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
-    elif index == 1:
-        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
-    elif index == 2:
-        brandPreds = sofaModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
-    elif index == 3:
-        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
-    elif index == 4:
-        brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    if isMerge:
+        brandPreds = mergeModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+    else:
+        if index == 0:
+            brandPreds = bedModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+        elif index == 1:
+            brandPreds = chairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+        elif index == 2:
+            brandPreds = sofaModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+        elif index == 3:
+            brandPreds = swivelchairModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
+        elif index == 4:
+            brandPreds = tableModelSession.run(['prediction'], {"input": product_img.astype(np.float32)})
     # else: 
     #     ""
     json_object_brands = obj_to_json_obj(brandPreds, NumpyArrayEncoder)
